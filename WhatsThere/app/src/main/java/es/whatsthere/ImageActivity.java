@@ -3,6 +3,7 @@ package es.whatsthere;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -15,12 +16,20 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.rekognition.AmazonRekognitionClient;
 import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
 import com.amazonaws.services.rekognition.model.DetectLabelsResult;
 import com.amazonaws.services.rekognition.model.Image;
 import com.amazonaws.services.rekognition.model.Label;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 
 public class ImageActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -29,7 +38,7 @@ public class ImageActivity extends AppCompatActivity implements View.OnClickList
     Button cameraButton, galleryButton, descriptionButton;
     private ImageView selectedImage;
     private String currentPhotoPath;
-    private Bitmap currentImage;
+    private static final BasicAWSCredentials bac = new BasicAWSCredentials("AKIAJILBZB23YKQ3PZKQ", "phZobGys+vMNfBPqFb/3P7pKgoBSJL6z9xfBht8P");
 
     private AmazonRekognitionClient clientAmazon;
 
@@ -48,7 +57,7 @@ public class ImageActivity extends AppCompatActivity implements View.OnClickList
         galleryButton.setOnClickListener(this);
         descriptionButton.setOnClickListener(this);
 
-        clientAmazon = new AmazonRekognitionClient(new BasicAWSCredentials("", ""));
+        clientAmazon = new AmazonRekognitionClient(bac);
         clientAmazon.setRegion(Region.getRegion("eu-west-1"));
 
     }
@@ -64,6 +73,7 @@ public class ImageActivity extends AppCompatActivity implements View.OnClickList
 
             case R.id.galleryButton:
 
+                // TODO
                 Intent selectFromGalleryIntent = new Intent(Intent.ACTION_PICK);
                 selectFromGalleryIntent.setType("image/*");
                 if (selectFromGalleryIntent.resolveActivity(getPackageManager()) != null) {
@@ -75,16 +85,18 @@ public class ImageActivity extends AppCompatActivity implements View.OnClickList
             case R.id.descriptionButton:
                 if (selectedImage != null) {
 
-                    int size = currentImage.getRowBytes() * bitmap.getHeight();
+                    Bitmap bitmap = ((BitmapDrawable)selectedImage.getDrawable()).getBitmap();
+                    int size = bitmap.getRowBytes() * bitmap.getHeight();
 
                     ByteBuffer byteBuffer = ByteBuffer.allocate(size);
-                    currentImage.copyPixelsToBuffer(byteBuffer);
+                    bitmap.copyPixelsToBuffer(byteBuffer);
 
                     Image source = new Image().withBytes(byteBuffer);
 
                     DetectLabelsRequest request = new DetectLabelsRequest(source);
                     //Se pueden añadir parametros a la request como por ejemplo el minimo de confianza y el maximo de etiquetas
-                    request.withMinConfidence(90.0).withMaxLabels(20);
+                   request.setRequestCredentials(bac);
+                  //  request.withMinConfidence(90.0).withMaxLabels(20);
 
 
                     DetectLabelsResult result = clientAmazon.detectLabels(request);
